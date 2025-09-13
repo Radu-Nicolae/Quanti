@@ -1,10 +1,19 @@
 \documentclass[sigconf,review]{acmart}
+\usepackage{amssymb}
+\usepackage{pifont} % for \cmark and \xmark
+\usepackage{pifont} % for \cmark and \xmark
+\newcommand{\cmark}{\ding{51}} % check mark
+\newcommand{\xmark}{\ding{55}} % cross mark
 
 \usepackage{amsmath,amssymb,amsfonts,latexsym}
 \usepackage{enumerate}
+\usepackage{lipsum}
 \usepackage{xspace}
 \usepackage{epsf,picinpar}
+\usepackage{hyperref}
 \usepackage{varioref}
+\usepackage{varioref}
+\usepackage{tabularx}
 \usepackage{colortbl,multirow,hhline}
 \usepackage{listings}
 \usepackage{amssymb}
@@ -13,6 +22,7 @@
 \usepackage{algorithm}
 \usepackage{caption}
 \usepackage[normalem]{ulem}
+\usepackage{cleveref}
 \usepackage{xcolor}
 \usepackage{pifont}
 \usepackage{xcolor,colortbl}
@@ -43,11 +53,11 @@
 \newcommand{\etc}{etc.\xspace}
 \newcommand{\etal}{\emph{et~al.}\xspace} 
 
-\copyrightyear{2020}
-\acmYear{2020}
-\setcopyright{acmcopyright}
-\acmConference[Green Lab 2020/2021]{Green Lab 2020/2021 - Vrije Universiteit Amsterdam}{September--October, 2025}{Amsterdam, The Netherlands}
-\acmBooktitle{Green Lab 2020/2021 - Vrije Universiteit Amsterdam, September--October, 2025, Amsterdam (The Netherlands)}
+\copyrightyear{2025}
+\acmYear{2025}
+% \setcopyright{acmcopyright}
+\acmConference[Green Lab 2025/2026]{Green Lab 2025/2026 - Vrije Universiteit Amsterdam}{September--October, 2025}{Amsterdam, The Netherlands}
+\acmBooktitle{Green Lab 2025/2026 - Vrije Universiteit Amsterdam, September--October, 2025, Amsterdam (The Netherlands)}
     
 \begin{document}
 
@@ -69,42 +79,45 @@ Exploring the impact of LLM compression by quantization on energy consumption, r
  \institution{2760443 \\ VU Amsterdam, \\ Universiteit van Amsterdam}
 } \email{r.nicolae@vu.nl}
 
+\author{Junaid Khalil}
+\affiliation{%
+ \institution{2891638 \\ VU Amsterdam, \\
+ Universiteit van Amsterdam}
+} \email{j.khalil6@student.vu.nl}
+
 \author{Muhammad Shayan}
 \affiliation{%
  \institution{2891482 \\ VU Amsterdam}
 } \email{m.shayan@student.vu.nl}
 
-\author{Name Surname}
+\author{Md Tasluf Morshed}
 \affiliation{%
- \institution{Student Number \\ VU Amsterdam}
-} \email{xyz@student.vu.nl}
+ \institution{2890836 \\ VU Amsterdam}
+} \email{m.t.morshed@student.vu.nl}
 
-\author{Name Surname}
+\author{Alp Eren Inceoglu}
 \affiliation{%
- \institution{Student Number \\ VU Amsterdam}
-} \email{xyz@student.vu.nl}
-
-\author{Name Surname}
-\affiliation{%
- \institution{Student Number \\ VU Amsterdam}
-} \email{xyz@student.vu.nl}
+ \institution{2842116 \\ VU Amsterdam}
+} \email{a.e.inceoglu@student.vu.nl}
 
 \begin{abstract}
 % \noindent \textit{Context}. 
 % \todo{at the end}
-Large Language Models (LLMs) are being increasingly adopted by our digital society, but raise sustainability concerns when operated at a massive societal scale, further exacerbating the exploitation of our already over-exploited resources. % societal context
-To improve the performance, efficiency, and, thus, sustainability of LLMs, compression techniques have been widely adopted to minimise resource utilisation, especially when LLM workloads are not critical and extreme accuracy is not needed (e.g., users using LLMs for online searches). % LLM context
-Quantisation is a widely used LLM compression technique adopted by industry-leading providers to reduce model size and, hence, reduce computation requirements, without requiring architectural LLM changes or LLM training, while still maintaining sufficient accuracy. % quantization context
-However, albeit theoretically expected to exist, the tradeoffs between the energy efficiency, resource utilization (e.g., CPU, memory, inference time), and accuracy degradation of LLM operation remain insufficiently understood and unquantified. % gap 1
-The benchmarking challenge is further exacerbated by the absence of benchmarking systems for systematically quantifying LLMs; the lack of such systems can be costly and could misguide operators of LLM services. % gap 2
-Addressing the open challenge, in this work, we propose Quanti, the first tool for quantifying the sustainability and performance of LLMs. % approach (following AtLarge, community-standard methodology on designing distributed (eco)systems)
+
+
+Large Language Models (LLMs) are being increasingly adopted by our digital society, but raise sustainability concerns when operated at a massive societal scale. % societal context
+To improve the performance, efficiency, and, thus, sustainability of LLMs, compression techniques have been widely adopted, yet at the cost of accuracy. % LLM context
+One such technique is quantisation, a state-of-the-art approach to reduce model size (thus computation requirements), while maintaining sufficient accuracy, and without architectural changes or re-training. % quantization context
+However, although quantization is theoretically expected to generate tradeoffs between energy efficiency, resource utilization (e.g., CPU, memory, inference time), and accuracy degradation, these tradeoffs are insufficiently understood and unquantified. % gap 1
+The quantification challenge is further exacerbated by the absence of benchmarking systems for systematically quantifying LLM ecosystems; the lack of such systems can be costly and could misguide operators of LLM services. % gap 2
+Addressing the open challenge, in this work, we propose \underline{Quanti}, the first tool for \underline{quanti}fying the sustainability and performance of LLMs. % approach (following AtLarge, community-standard methodology on designing distributed (eco)systems)
 We propose an architecture for deploying, measuring, and comparing LLM on the server side. % design
 Through experiments with a prototype, % implement
 we % evaluate & experiment
 (i) explore the impact of quantization on operational-level metrics of LLMs,
 (ii) evaluate the tradeoff between energy consumption-accuracy of LLMs underlying different architectures, both original and under compression by quantization, and
 (iii) quantify the impact of carbon-aware workload scheduling of compressed and uncompressed models. 
-We research Quanti, together with all the  
+Quanti, together with all the production data, results, and reproducibility capsule, are released open-source on \url{https://github.com/Radu-Nicolae/Quanti}.
 
 
 
@@ -123,10 +136,12 @@ We research Quanti, together with all the
 
 \maketitle
 
-\input{reportTemplate/sections/intro}
+\input{reportTemplate/sections/intro} \newpage
+\input{reportTemplate/sections/background}
 \input{reportTemplate/sections/related}
 \input{reportTemplate/sections/definition}
 \input{reportTemplate/sections/planning}
+\input{reportTemplate/sections/design}
 \input{reportTemplate/sections/execution}
 \input{reportTemplate/sections/results}
 \input{reportTemplate/sections/discussion}

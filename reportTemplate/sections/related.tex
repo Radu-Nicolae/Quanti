@@ -1,7 +1,37 @@
+
 \section{Related Work}\label{sec:related}
 
-    Describe here scientific papers similar to your experiment, both in terms of goal and methodology. 
+\begin{table*}[ht]
+    \centering
+    \begin{tabular}{lllllll}
+        \hline
+        \textbf{Study} & \textbf {Quantization} & \textbf{Other technique} & \textbf{Energy Metrics} & \textbf{Accuracy} & \textbf{Resource Usage} & \textbf{Carbon Intensity}\\
+        \hline
+        \midrule
+        Zhu et al. \cite{DBLP:journals/tacl/ZhuLLMW24} & \cmark & \cmark & \xmark & \xmark & \xmark & \xmark\\
+        Afrin et al.\cite{DBLP:journals/corr/abs-2507-09665} & \cmark (AWQ) & \xmark & \xmark & \cmark (qual.) & \xmark & \xmark\\
+        Khan et al.\cite{DBLP:journals/corr/abs-2504-06307} & \cmark & \xmark & \cmark & \cmark & \xmark & \xmark\\
+        Agrawal et al.\cite{10968787} & \cmark & \cmark & \xmark & \cmark & \cmark & \xmark\\
+        Yuan et al.\cite{DBLP:conf/cain/YuanSZCZSM24} & \xmark & \cmark (KD) & \cmark & \cmark & \cmark & \xmark\\
+        \textbf{Our Work} & \cmark (PTQ) & \xmark & \cmark & \cmark & \cmark & \cmark\\
+        \hline
+        \bottomrule
+    \end{tabular}
+    \caption{Gap Analysis of Related Work on LLM Compression}
+    \label{tab:gapanalysis}
+\end{table*}
 
-One paragraph for each paper (we expect about 5-8 papers to be discussed). Each paragraph contains: (i) a brief description of the related paper and (ii) a black-on-white description about how your experiment differs from the related paper.
+    This section discusses scientific papers such as our experiment and their contributions, and how our study differs from or extends theirs. 
 
+Zhu et al. \cite{DBLP:journals/tacl/ZhuLLMW24} present a comprehensive review of LLM compression methods like quantization, pruning, knowledge distillation, and low-rank factorization. They elaborate on methods like Quantization-Aware Training (QAT) and Post-Training Quantization (PTQ) and propose benchmarking on FLOPs, inference time, and compression ratio. While their study aggregates existing methods, the present research presents an explicit empirical investigation of quantization, evaluating its overall effects on energy, resources, and accuracy.
+
+Saima Afrin et al. \cite{DBLP:journals/corr/abs-2507-09665} conducted an empirical study examining the impact of Activation-aware Weight Quantization (AWQ) on the qualitative properties of automatically generated code by Large Code Models (LCMs), a custom sub-family of LLMs. In their work, employing cutting-edge static analysis tools, they observed that quantization has a tendency to preserve functional correctness of generated code and qualitative attributes like maintainability, readability, and structural complexity. They further examined the influence of model size on quality degradation following quantization, disproving the belief that loss of information from quantization damages such features. Afrin et al.'s study is especially focused on code quality as applied to Large Code Models, evaluating accuracy primarily in functional correctness and qualitative code properties. Our experiment broadens the perspective, checking the quantization's effect on a broader set of LLM uses (not just code creation) and quantitatively correlating it with measurably consumed energy and several resource consumption metrics, along with functional and qualitative correctness.
+
+Khan et al. \cite{DBLP:journals/corr/abs-2504-06307} evaluate local inference and quantization for reducing the carbon footprint of LLMs by as much as 45 percent less energy usage and minimal losses in accuracy. They concentrate on sustainability metrics, while we broaden the scope to also include memory, speed, and qualitative performance metrics.
+
+Agrawal et al. \cite{10968787} investigate pruning, quantization, and distillation to deploy LLMs at the edge. They show quantization to be capable of reducing memory usage in half and lowering inference latency. In comparison to their multi-pronged strategy, our technique separates quantization to uncover its specific role in making efficiency-accuracy trade-offs.
+
+Ye Yuan et al. \cite{DBLP:conf/cain/YuanSZCZSM24} estimated empirically the impact of \textbf{Knowledge Distillation} on the energy usage and efficiency of NLP models, such as BERT and GPT-2. They found that their distilled models consumed less energy, took less time to make inferences, and, in some cases, consumed less CPU and memory compared to non-distilled models. The work emphasized the importance of model selection to energy efficiency and performance, particularly for mobile and resource-limited applications. The central theme of Yuan et al.'s paper \cite{DBLP:conf/cain/YuanSZCZSM24} is knowledge distillation as the compression method. Our own experiment, however, specifically targets quantization compression of LLMs. we want to quantify its individual effects on energy consumption, different types of resource consumption measurement, and prediction performance, thus targeting a different but complementary compression setting.
+
+Briefly speaking, prior work establishes the strengths of compression and optimization to efficiency and sustainability. Nevertheless, most survey many approaches, emphasize domain-specific tasks, or focus on other directions. Our work fills this gap by providing an end-to-end, empirical study of quantization's impact on LLMs on energy consumption, resource use, and accuracy
 \textcolor{red}{Page limit: 1}
