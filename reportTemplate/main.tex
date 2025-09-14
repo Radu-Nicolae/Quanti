@@ -55,20 +55,16 @@
 
 \copyrightyear{2025}
 \acmYear{2025}
-% \setcopyright{acmcopyright}
-\acmConference[Green Lab 2025/2026]{Green Lab 2025/2026 - Vrije Universiteit Amsterdam}{September--October, 2025}{Amsterdam, The Netherlands}
-\acmBooktitle{Green Lab 2025/2026 - Vrije Universiteit Amsterdam, September--October, 2025, Amsterdam (The Netherlands)}
+\setcopyright{acmcopyright}
+\acmConference[Green Lab 2025]{Green Lab 2025/2026 - Vrije Universiteit Amsterdam}
+\acmBooktitle{Vrije Universiteit Amsterdam}
+\acmPrice{}
+\acmDOI{}
+\acmISBN{}
+
     
 \begin{document}
 
-\begin{figure*}
-    \centering
-    \includegraphics[width=0.95\linewidth]{reportTemplate/figures/paper-page-budgeting-green-lab.pdf}
-    \caption{Paper Page Budgeting following the template suggested in the work in progress paper by Iosup et al. in \cite{iosup-epema-systems-writing-wip}. Edit link: \url{https://drive.google.com/file/d/1-9jcqbOQJRCJZpWZldTrm27HNUFuAtWR/view?usp=drive_link}.}
-    \label{fig:placeholder}
-\end{figure*}
-
-\newpage
 
 \title{
 Exploring the impact of LLM compression by quantization on energy consumption, resource utilisation, and accuracy
@@ -101,13 +97,9 @@ Exploring the impact of LLM compression by quantization on energy consumption, r
 } \email{a.e.inceoglu@student.vu.nl}
 
 \begin{abstract}
-% \noindent \textit{Context}. 
-% \todo{at the end}
-
-
 Large Language Models (LLMs) are being increasingly adopted by our digital society, but raise sustainability concerns when operated at a massive societal scale. % societal context
 To improve the performance, efficiency, and, thus, sustainability of LLMs, compression techniques have been widely adopted, yet at the cost of accuracy. % LLM context
-One such technique is quantisation, a state-of-the-art approach to reduce model size (thus computation requirements), while maintaining sufficient accuracy, and without architectural changes or re-training. % quantization context
+One such technique is quantization, a state-of-the-art approach to reduce model size (thus computation requirements), while maintaining sufficient accuracy, and without architectural changes or re-training. % quantization context
 However, although quantization is theoretically expected to generate tradeoffs between energy efficiency, resource utilization (e.g., CPU, memory, inference time), and accuracy degradation, these tradeoffs are insufficiently understood and unquantified. % gap 1
 The quantification challenge is further exacerbated by the absence of benchmarking systems for systematically quantifying LLM ecosystems; the lack of such systems can be costly and could misguide operators of LLM services. % gap 2
 Addressing the open challenge, in this work, we propose \underline{Quanti}, the first tool for \underline{quanti}fying the sustainability and performance of LLMs. % approach (following AtLarge, community-standard methodology on designing distributed (eco)systems)
@@ -116,8 +108,10 @@ Through experiments with a prototype, % implement
 we % evaluate & experiment
 (i) explore the impact of quantization on operational-level metrics of LLMs,
 (ii) evaluate the tradeoff between energy consumption-accuracy of LLMs underlying different architectures, both original and under compression by quantization, and
-(iii) quantify the impact of carbon-aware workload scheduling of compressed and uncompressed models. 
+(iii) quantify the impact of CO2-aware workload scheduling of compressed and uncompressed models. 
 Quanti, together with all the production data, results, and reproducibility capsule, are released open-source on \url{https://github.com/Radu-Nicolae/Quanti}.
+
+\vspace*{-0.1cm}
 
 
 
@@ -134,6 +128,7 @@ Quanti, together with all the production data, results, and reproducibility caps
 % \todo{at the end}
 \end{abstract}
 
+
 \maketitle
 
 \input{reportTemplate/sections/intro} \newpage
@@ -147,6 +142,13 @@ Quanti, together with all the production data, results, and reproducibility caps
 \input{reportTemplate/sections/discussion}
 \input{reportTemplate/sections/threats}
 \input{reportTemplate/sections/conclusion} 
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.95\linewidth]{reportTemplate/figures/paper-page-budgeting-green-lab.pdf}
+    \caption{Page Budgeting following the template suggested in the work in progress paper by Iosup et al. in \cite{iosup-epema-systems-writing-wip}. Edit link: \url{https://drive.google.com/file/d/1-9jcqbOQJRCJZpWZldTrm27HNUFuAtWR/view?usp=drive_link}.}
+    \label{fig:placeholder}
+\end{figure*}
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
