@@ -11,9 +11,8 @@ models: dict[str, str] = {
     "Mistral-8B-AWQ":   "solidrust/Mistral-NeMo-Minitron-8B-Base-AWQ",
 }
 
-# -------- env / SSH helpers -------------------------------------------------
+
 def set_env(env_path: str = ".env") -> None:
-    """Load KEY=VAL lines into os.environ."""
     p = Path(env_path).expanduser()
     if not p.is_file():
         raise FileNotFoundError(env_path)
@@ -23,13 +22,12 @@ def set_env(env_path: str = ".env") -> None:
             os.environ[k.strip()] = v.strip()
 
 def cmd_ssh(user: str, jump: str, jport: str, target: str) -> str:
-    """Return an SSH command that tunnels through a bastion."""
     return f"ssh -J {user}@{jump}:{jport} {user}@{target}"
 
-# -------- vLLM invocation ---------------------------------------------------
+
 def cmd_serve_model(
     name: str,
-    gpu_memory_utilization: float = 0.60,   # 60 % of free VRAM
+    gpu_memory_utilization: float = 0.60,
     max_len: int = 4_096,
     port: int = 8_000,
 ) -> str:
@@ -42,6 +40,6 @@ def cmd_serve_model(
         f"--gpu-memory-utilization {gpu_memory_utilization}"
     )
 
+
 def quote(cmd: str) -> str:
-    """POSIX-quote a whole command for remote execution."""
     return shlex.quote(cmd)
