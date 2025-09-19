@@ -1,9 +1,15 @@
-from llm_library import models
-from builder import cmd_serve_model
+import sys
 
-if __name__ == '__main__':
-    for model in models.keys():
-        cmd = cmd_serve_model(model)
-        # let it run for 10 seconds, then kill it
-        cmd += " & sleep 1; pkill -f 'vllm serve'; "
-        print(cmd)
+from Quanti.runner import ssh_and_launch
+from llm_library import models
+import builder
+import os
+
+
+if __name__ == "__main__":
+    import sys
+    target = sys.argv[1] if len(sys.argv) > 1 else "Llama-3-8B"
+
+    if target not in models:
+        sys.exit(f"Unknown model: {target}")
+    ssh_and_launch(target)
