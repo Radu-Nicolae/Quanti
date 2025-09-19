@@ -1,0 +1,6 @@
+python -m venv vllm-env
+source vllm-env/bin/activate
+pip install vllm
+
+vllm serve Qwen/Qwen2.5-1.5B-Instruct --host 0.0.0.0 --port 8000
+
