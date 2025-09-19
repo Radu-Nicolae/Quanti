@@ -1,21 +1,47 @@
 from pathlib import Path
-from llm_library import models
-import os
+import os, shlex
 
+# -------- Hugging-Face model aliases ----------------------------------------
+models: dict[str, str] = {
+    "Llama-3-8B":       "meta-llama/Llama-3.1-8B-Instruct",
+    "Mistral-8B":       "solidrust/Mistral-NeMo-Minitron-8B-Base-AWQ",
+    "Granite-8B":       "ibm-granite/granite-3.3-8b-base",
+    "Llama-3-8B-AWQ":   "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+    "Granite-8B-AWQ":   "RedHatAI/granite-3.1-8b-instruct-quantized.w4a16",
+    "Mistral-8B-AWQ":   "solidrust/Mistral-NeMo-Minitron-8B-Base-AWQ",
+}
 
-def cmd_serve_model(model_name: str, gpu_util=0.85, max_model_len=4096):
-    return f"vllm serve \"{models[model_name]}\" --max-model-len {max_model_len} --max-num-seqs 32 --gpu-memory-utilization {gpu_util}"
-
-def cmd_ssh(user: str, jump_host: str, jump_port:str, target_host: str):
-    return f"ssh -J {user}@{jump_host}:{jump_port} {user}@{target_host}"
-
+# -------- env / SSH helpers -------------------------------------------------
 def set_env(env_path: str = ".env") -> None:
+    """Load KEY=VAL lines into os.environ."""
     p = Path(env_path).expanduser()
     if not p.is_file():
-        raise FileNotFoundError(f"{env_path} not found")
-
+        raise FileNotFoundError(env_path)
     for raw in p.read_text().splitlines():
-        stripped = raw.strip()
-        if stripped and not stripped.startswith("#") and "=" in stripped:
-            k, v = stripped.split("=", 1)
+        if raw.strip() and not raw.lstrip().startswith("#") and "=" in raw:
+            k, v = raw.split("=", 1)
             os.environ[k.strip()] = v.strip()
+
+def cmd_ssh(user: str, jump: str, jport: str, target: str) -> str:
+    """Return an SSH command that tunnels through a bastion."""
+    return f"ssh -J {user}@{jump}:{jport} {user}@{target}"
+
+# -------- vLLM invocation ---------------------------------------------------
+def cmd_serve_model(
+    name: str,
+    gpu_memory_utilization: float = 0.60,   # 60 % of free VRAM
+    max_len: int = 4_096,
+    port: int = 8_000,
+) -> str:
+    repo = models[name]
+    return (
+        f'vllm serve "{repo}" '
+        f"--port {port} "
+        f"--max-model-len {max_len} "
+        f"--max-num-seqs 32 "
+        f"--gpu-memory-utilization {gpu_memory_utilization}"
+    )
+
+def quote(cmd: str) -> str:
+    """POSIX-quote a whole command for remote execution."""
+    return shlex.quote(cmd)
