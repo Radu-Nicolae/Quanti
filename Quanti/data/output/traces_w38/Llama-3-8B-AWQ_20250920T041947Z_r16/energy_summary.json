@@ -1,0 +1,20 @@
+{
+  "run_name": "Llama-3-8B-AWQ_20250920T041947Z_r16",
+  "duration_s": 8.88,
+  "samples": 84,
+  "avg_power_W": 249.03,
+  "max_power_W": 258.82,
+  "avg_util_pct": 91.71,
+  "max_util_pct": 95.0,
+  "avg_mem_MiB": 15360.26,
+  "max_mem_MiB": 15361.0,
+  "energy_Wh": 0.58,
+  "trace_csv": "data/output/Llama-3-8B-AWQ_20250920T041947Z_r16/energy_trace.csv",
+  "results_csv": "data/output/Llama-3-8B-AWQ_20250920T041947Z_r16/results.csv",
+  "model": "Llama-3-8B-AWQ",
+  "n_prompts": 10,
+  "workload_duration_s": 8.87,
+  "input_file": "data/input/llm_workload_10.csv",
+  "repeat_index": 16,
+  "repeat_total": 30
+}
