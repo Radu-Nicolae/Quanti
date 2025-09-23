@@ -34,19 +34,23 @@ def main():
 
     # ------ Execute benchmark on server ------
     print("⚡ [2/] Executing benchmark on server...")
-    cmd = f"ssh glg1 'cd ~ && python3 benchmark.py {args.llm} {args.workload}'"
-    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
+    cmd = f"ssh glg1 'cd ~ && source ~/vllm-env/bin/activate && cd Quanti && python3 benchmark.py {args.llm} data/input/{os.path.basename(args.workload)}'"
 
-    if result.returncode != 0:
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+
+    if result.returncode == 0:
         print("✅ Benchmark completed successfully")
 
         # Download results
         print("📥 3. Downloading results...")
-        subprocess.run("scp -O glg1:~/results/* ./results/ 2>/dev/null || true", shell=True)
-        subprocess.run("scp -O glg1:~/energy_*.json ./results/ 2>/dev/null || true", shell=True)
+        subprocess.run("scp -O glg1:~/Quanti/results/* ./results/ 2>/dev/null || true", shell=True)
+        subprocess.run("scp -O glg1:~/Quanti/energy_*.json ./results/ 2>/dev/null || true", shell=True)
+        subprocess.run("scp -O glg1:~/Quanti/benchmark_report_*.json ./results/ 2>/dev/null || true", shell=True)
         print("✅ Results downloaded to ./results/")
     else:
-        print("❌ Benchmark failed, error: ", result.stderr.decode().strip())
+        print("❌ Benchmark failed")
+        print("stdout:", result.stdout)
+        print("stderr:", result.stderr)
         sys.exit(1)
 
 

@@ -1,16 +1,19 @@
 import subprocess
+import sys
 import time
 import os
 import uuid
-
 import requests
+import pandas as pd
+import numpy as np
+import json
 
-from Quanti import vllm
-from Quanti.energy import EnergyMonitor
-from Quanti.utils import append_csv, now_tag
+from energy import EnergyMonitor
+from utils import append_csv, now_tag
+import vllm
 
 
-def benchmark_setup(llm, workload):
+def benchmark_setup(llm):
     """Setup the benchmark environment on the server."""
     print("🔧 Setting up benchmark environment...")
 
@@ -19,7 +22,7 @@ def benchmark_setup(llm, workload):
     result = subprocess.run("pip install -r requirements.txt", shell=True, capture_output=True, text=True)
 
     if result.returncode != 0:
-        print(f"❌ Failed to install requirements: {result.stderr.strip()}")
+        print(f"❌ Failed to install requirements: {result.stderr}")
         return False
 
     print(f"✅ Requirements installed")
@@ -43,11 +46,11 @@ def benchmark_setup(llm, workload):
     )
 
     print("  ⏳ Waiting for vLLM server to start...")
-    deadline = time.time() + 30 # max 30s to start... the RTX4090 may be slow, but can't be thaaaat slow
+    deadline = time.time() + 30  # max 30s to start... the RTX4090 may be slow, but can't be thaaaat slow
 
     while time.time() < deadline:
         try:
-            response = subprocess.get("http://localhost:8000/", timeout=2)
+            response = requests.get("http://localhost:8000/health", timeout=2)
             if response.ok:
                 print("  ✅ vLLM server is born! Time to party.")
                 return True
@@ -127,62 +130,89 @@ def benchmark_main(llm: str, workload: str):
         print(f"❌ Workload file does not exist: {workload}")
         return False
 
-        # Setup environment
-        print("1️⃣ Setting up environment...")
-        if not benchmark_setup(llm):
-            print("❌ Setup failed")
-            return False
+    # Setup environment
+    print("1️⃣ Setting up environment...")
+    if not benchmark_setup(llm):
+        print("❌ Setup failed")
+        return False
 
-        # Initialize energy monitoring with unique run name
-        run_name = f"{llm}_{now_tag()}_{uuid.uuid4().hex[:6]}"
-        monitor = EnergyMonitor(interval_ms=100, run_name=run_name)
+    # Initialize energy monitoring with unique run name
+    run_name = f"{llm}_{now_tag()}_{uuid.uuid4().hex[:6]}"
+    monitor = EnergyMonitor(interval_ms=100, run_name=run_name)
 
-        print("2️⃣ Starting energy monitoring...")
-        monitor.start()
+    print("2️⃣ Starting energy monitoring...")
+    monitor.start()
 
-        print("3️⃣ Running workload...")
-        result = run_workload(llm, workload, monitor)
+    print("3️⃣ Running workload...")
+    results = run_workload(llm, workload, monitor)
 
-        if result is not None:
-            print("❌ Workload execution failed")
-            monitor.stop()
-            return False
+    if results is None:
+        print("❌ Workload execution failed")
+        monitor.stop()
+        return False
 
-        print("4️⃣ Stopping energy monitoring...")
-        energy_summary = monitor.stop(
-            meta={
-                "llm": llm,
-                "workload": workload,
-                **result
-            }
-        )
+    print("4️⃣ Stopping energy monitoring...")
+    energy_summary = monitor.stop(
+        meta={
+            "llm": llm,
+            "workload": workload,
+            **results
+        }
+    )
 
-        report = f"benchmark_report_{run_name}.json"
-        with open(report, "w") as f:
-            json.dump(energy_summary, f, indent=2)
+    report = f"benchmark_report_{run_name}.json"
+    with open(report, "w") as f:
+        json.dump(energy_summary, f, indent=2)
 
-        print("\n" + "=" * 60)
-        print("🎉 BENCHMARK COMPLETED SUCCESSFULLY!")
-        print("=" * 60)
-        print(f"📊 Model: {llm}")
-        print(f"📁 Workload: {workload}")
-        print(f"⏱️  Duration: {workload_results['workload_duration_s']:.2f}s")
-        print(f"📈 Queries: {workload_results['n_prompts']} ({workload_results['success_rate']:.1f}% success)")
-        print(f"⚡ Avg Power: {energy_summary['avg_power_W']:.2f}W")
-        print(f"🔋 Total Energy: {energy_summary['energy_Wh']:.4f}Wh")
-        print(f"🖥️  Avg GPU Util: {energy_summary['avg_util_pct']:.1f}%")
-        print(f"💾 Avg GPU Mem: {energy_summary['avg_mem_MiB']:.0f}MiB")
-        print("=" * 60)
-        print("📋 Output Files:")
-        print(f"  📊 Benchmark Report: {report_file}")
-        print(f"  📈 Query Results: {workload_results['results_file']}")
-        print(f"  ⚡ Energy Trace: {energy_summary['trace_csv']}")
-        print(f"  📝 Energy Summary: {energy_summary['summary_json']}")
-        print("=" * 60)
+    print("\n" + "=" * 60)
+    print("🎉 BENCHMARK COMPLETED SUCCESSFULLY!")
+    print("=" * 60)
+    print(f"📊 Model: {llm}")
+    print(f"📁 Workload: {workload}")
+    print(f"⏱️  Duration: {results['workload_duration_s']:.2f}s")
+    print(f"⚡ Avg Power: {energy_summary['avg_power_W']:.2f}W")
+    print(f"🔋 Total Energy: {energy_summary['energy_Wh']:.4f}Wh")
+    print(f"🖥️  Avg GPU Util: {energy_summary['avg_util_pct']:.1f}%")
+    print(f"💾 Avg GPU Mem: {energy_summary['avg_mem_MiB']:.0f}MiB")
+    print("=" * 60)
+    print("📋 Output Files:")
+    print(f"  📊 Benchmark Report: {report}")
+    print(f"  📈 Query Results: {results['results_file']}")
+    print(f"  ⚡ Energy Trace: {energy_summary['trace_csv']}")
+    print(f"  📝 Energy Summary: {energy_summary['summary_json']}")
+    print("=" * 60)
 
-        return True
-
+    return True
 
 
+def cleanup_processes():
+    """Cleanup any lingering vLLM processes."""
+    print("🧹 Cleaning up vLLM processes...")
+    subprocess.run('pkill -f "vllm serve" || true', shell=True)
+    subprocess.run('pkill -f "nvidia-smi" || true', shell=True)
+    print("✅ Cleanup complete.")
 
 
+if __name__ == "__main__":
+    try:
+        if len(sys.argv) != 3:
+            print("Usage: python benchmark.py <llm_model> <workload_file>")
+            print(f"Available models: {list(vllm.models.keys())}")
+            sys.exit(1)
+
+        llm_model = sys.argv[1]
+        workload_file = sys.argv[2]
+
+        success = benchmark_main(llm_model, workload_file)
+        sys.exit(0 if success else 1)
+
+    except KeyboardInterrupt:
+        print("\n⚠️ Benchmark interrupted by user")
+        cleanup_processes()
+        sys.exit(130)
+    except Exception as e:
+        print(f"\n❌ Benchmark failed with error: {e}")
+        cleanup_processes()
+        sys.exit(1)
+    finally:
+        cleanup_processes()

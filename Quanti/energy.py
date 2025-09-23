@@ -4,8 +4,7 @@ import os
 import subprocess
 import threading
 import time
-
-from Quanti.utils import now_tag
+from utils import now_tag
 
 
 class EnergyMonitor:
@@ -27,7 +26,9 @@ class EnergyMonitor:
         self.samples = 0
         self.sum_power = 0.0
         self.avg_power = 0.0
+        self.sum_util = 0.0
         self.avg_util = 0.0
+        self.sum_mem = 0.0
         self.avg_mem = 0.0
         self.t0 = None
         self.t1 = None
@@ -84,8 +85,8 @@ class EnergyMonitor:
                     with self._lock:
                         self.samples += 1
                         self.sum_power += power
-                        self.avg_util += util
-                        self.avg_mem += mem_used
+                        self.sum_util += util
+                        self.sum_mem += mem_used
 
             except Exception as e:
                 print("❌ Error in energy monitoring thread:", e)
@@ -100,7 +101,6 @@ class EnergyMonitor:
 
     def stop(self, meta=None):
         """Stop monitoring and return summary!"""
-        # Signal stop
         self._stop.set()
 
         # Terminate nvidia-smi process
@@ -125,8 +125,8 @@ class EnergyMonitor:
         with self._lock:
             if self.samples > 0:
                 self.avg_power = self.sum_power / self.samples
-                self.avg_util = self.avg_util / self.samples
-                self.avg_mem = self.avg_mem / self.samples
+                self.avg_util = self.sum_util / self.samples
+                self.avg_mem = self.sum_mem / self.samples
             else:
                 self.avg_power = 0.0
                 self.avg_util = 0.0

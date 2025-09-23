@@ -1,9 +1,11 @@
 import argparse
 import csv
+from datetime import datetime
 import os
 import shlex
 
-WORKLOAD = "data/inputs/inputs.csv"
+WORKLOAD = "data/input/llm_workload_100.csv"
+
 
 def parse_args(argv=None):
     """
