@@ -8,7 +8,7 @@ import pandas as pd
 import json
 
 from energy import EnergyMonitor
-from utils import append_csv, now_tag, create_run_directory, get_workload_size
+from utils import append_csv, now_tag, get_workload_size
 import vllm_manager
 
 
@@ -62,7 +62,7 @@ def benchmark_setup(llm):
     )
 
     print("  ⏳ Waiting for vLLM server to start...")
-    deadline = time.time() + 30  # max 30s to start... the RTX4090 may be slow, but can't be thaaaat slow
+    deadline = time.time() + 30  # max 30s to start
 
     while time.time() < deadline:
         if proc.poll() is not None:
@@ -115,11 +115,11 @@ def run_workload(llm: str, workload_file: str, monitor: EnergyMonitor, run_dir: 
 
     # Choose output location based on run_dir
     if run_dir:
-        os.makedirs(f"{run_dir}/detailed", exist_ok=True)
-        results_file = f"{run_dir}/detailed/query_responses.csv"
+        os.makedirs(os.path.join(run_dir, "detailed"), exist_ok=True)
+        results_file = os.path.join(run_dir, "detailed", "query_responses.csv")
     else:
-        results_file = f"results/results_{llm}_{now_tag()}.csv"
         os.makedirs("results", exist_ok=True)
+        results_file = f"results/results_{llm}_{now_tag()}.csv"
 
     print(f"🏃 Processing {len(df)} prompts...")
 
@@ -143,9 +143,8 @@ def run_workload(llm: str, workload_file: str, monitor: EnergyMonitor, run_dir: 
     }
 
 
-
 def benchmark_main(llm: str, workload: str, output_dir: str = None):
-    """Main benchmark function - runs entirely on server with energy monitoring to save headaches with local-server sync."""
+    """Main benchmark function - runs entirely on server with energy monitoring."""
     print(f"🎯 Starting benchmark: {llm} on {workload}")
 
     if llm not in vllm_manager.models:
@@ -157,10 +156,12 @@ def benchmark_main(llm: str, workload: str, output_dir: str = None):
         print(f"❌ Workload file does not exist: {workload}")
         return False
 
+    # Use the provided output directory EXACTLY as given (no rXX/timestamp wrappers).
     run_dir = None
     if output_dir:
-        run_dir = create_run_directory(output_dir, llm, workload)
-        print(f"📁 Created run directory: {run_dir}")
+        os.makedirs(output_dir, exist_ok=True)
+        run_dir = output_dir
+        print(f"📁 Using output directory as-is: {run_dir}")
 
     # Setup environment
     print("1️⃣ Setting up environment...")
@@ -195,8 +196,9 @@ def benchmark_main(llm: str, workload: str, output_dir: str = None):
         }
     )
 
+    # Save a simple summary file alongside other outputs if run_dir is set
     if run_dir:
-        report = f"{run_dir}/summary.json"
+        report = os.path.join(run_dir, "summary.json")
     else:
         report = f"benchmark_report_{run_name}.json"
 
@@ -243,4 +245,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Benchmark failed with error: {e}")
         sys.exit(1)
-
