@@ -2,17 +2,17 @@
 import sys, os, pandas as pd, numpy as np
 import subprocess
 from Quanti.utils import now_tag
-from ssh import *
+from ssh_manager import *
 
 
 def upload_all_files():
     """Upload all benchmarking scripts and data files to the server."""
     # Create necessary directories on remote server - everything in Quanti
-    subprocess.run("ssh glg1 'mkdir -p ~/Quanti ~/Quanti/data/input ~/Quanti/results'", shell=True)
+    subprocess.run("ssh glg1 'mkdir -p ~/Quanti ~/Quanti/data/input ~/Quanti/data/results'", shell=True)
 
     files_to_upload = {
         "benchmark.py": "Quanti/benchmark.py",
-        "vllm.py": "Quanti/vllm.py",
+        "vllm_manager.py": "Quanti/vllm_manager.py",
         "utils.py": "Quanti/utils.py",
         "energy.py": "Quanti/energy.py",
         "requirements.txt": "Quanti/requirements.txt"  # Also put in Quanti
@@ -35,6 +35,7 @@ def upload_all_files():
                 sys.exit(1)
 
     # Upload data files to Quanti/data/input/
+
     for local_file in data_files:
         if os.path.exists(local_file):
             remote_file = f"~/Quanti/data/input/{os.path.basename(local_file)}"  # Put in Quanti folder
