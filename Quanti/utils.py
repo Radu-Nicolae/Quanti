@@ -4,7 +4,7 @@ from datetime import datetime
 import os
 import shlex
 
-WORKLOAD = "data/input/llm_workload_100.csv"
+WORKLOAD = "data/input/llm_workload_10.csv"
 
 
 def parse_args(argv=None):

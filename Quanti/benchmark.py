@@ -49,6 +49,10 @@ def benchmark_setup(llm):
     deadline = time.time() + 30  # max 30s to start... the RTX4090 may be slow, but can't be thaaaat slow
 
     while time.time() < deadline:
+        if proc.poll() is not None:
+            print(f"❌ vLLM process died with return code: {proc.returncode}")
+            return False
+
         try:
             response = requests.get("http://localhost:8000/health", timeout=2)
             if response.ok:
