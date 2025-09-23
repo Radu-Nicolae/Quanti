@@ -1,78 +1,72 @@
 # main.py
 import os, sys, csv, time, subprocess, atexit, requests, pandas as pd, json
-import builder
-from energy import EnergyMonitor, now_tag
 
-CSV_IN = "data/input/llm_workload_100.csv"
+import vllm_manager
+from Quanti.benchmark import benchmark_main
+from Quanti.uploader import upload_all_files
+from Quanti.utils import parse_args, append_csv
+from utils import *
+# from energy import EnergyMonitor, now_tag
+from ssh_manager import *
 
-
-def ssh_and_launch(model: str, port: int = 8000) -> str:
-    builder.set_env()
-    user = os.environ["SSH_USER"]
-    jump = os.environ["SSH_JUMP_HOST"]
-    jport = os.environ["SSH_JUMP_PORT"]
-    target = os.environ["SSH_TARGET_HOST"]
-    subprocess.run(f"ssh -J {user}@{jump}:{jport} {user}@{target} 'pkill -f \"vllm serve\" || true'", shell=True,
-                   check=False)
-    ssh = f"ssh -J {user}@{jump}:{jport} -L {port}:127.0.0.1:{port} {user}@{target}"
-    remote = "source ~/vllm-env/bin/activate && " + builder.cmd_serve_model(model, gpu_memory_utilization=0.60,
-                                                                            port=port)
-    proc = subprocess.Popen(f"{ssh} {builder.quote(remote)}", shell=True, stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL, text=True)
-    atexit.register(proc.terminate)
-    base = f"http://127.0.0.1:{port}"
-    deadline = time.time() + 300
-    while time.time() < deadline:
-        try:
-            if requests.get(f"{base}/health", timeout=2).ok:
-                break
-        except Exception:
-            pass
-        time.sleep(1)
-    return f"{base}/v1"
 
 
 def query_one(base_url: str, prompt: str, model: str) -> str:
-    payload = {"model": builder.models[model], "prompt": prompt, "max_tokens": 128, "temperature": 0.7}
+    payload = {"model": vllm_manager.models[model], "prompt": prompt, "max_tokens": 128, "temperature": 0.7}
     r = requests.post(f"{base_url}/completions", json=payload, timeout=120)
     r.raise_for_status()
     return r.json()["choices"][0]["text"].strip()
 
 
-def append_csv(path: str, idx: int, prompt: str, reply: str) -> None:
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    mode = "a" if os.path.isfile(path) else "w"
-    with open(path, mode, newline="", encoding="utf-8") as fh:
-        w = csv.writer(fh)
-        if fh.tell() == 0: w.writerow(["idx", "prompt", "reply"])
-        w.writerow([idx, prompt, reply])
+def main():
+    print("🚀 Quanti Benchmark Runner")
+
+    # ------ Parsing user's input ------
+    print("🛠️ [0/] Parsing input arguments...")
+    args = parse_args(sys.argv[1:])
+    print(f"✅ Input parsed: LLM={args.llm}, Workload={args.workload}")
+
+
+    # ------ Upload all to server -----
+    print("📡 [1/] Setting up server...")
+    upload_all_files()
+    print("✅ Server setup complete.")
+
+    # ------ Execute benchmark on server ------
+    print("⚡ [2/] Executing benchmark on server...")
+    workload_basename = os.path.basename(args.workload)
+    cmd = f"""ssh glg1 'cd ~/Quanti && source ~/vllm-env/bin/activate && python3 benchmark.py {args.llm} data/input/{workload_basename}'"""
+
+    print(f"📝 Executing: {cmd}")
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+
+    if result.returncode == 0:
+        print("✅ Benchmark completed successfully")
+        print("📤 Server output:")
+        print(result.stdout)
+
+        print("📥 [3/] Downloading results...")
+        os.makedirs("./results", exist_ok=True)
+
+        print("  📥 Downloading query results...")
+        subprocess.run("scp -O 'glg1:~/Quanti/results/*' ./results/", shell=True)
+
+        print("  📥 Downloading energy traces...")
+        subprocess.run("scp -O 'glg1:~/Quanti/energy_traces/*' ./results/", shell=True)
+
+        print("  📥 Downloading benchmark reports...")
+        subprocess.run("scp -O 'glg1:~/Quanti/benchmark_report_*.json' ./results/", shell=True)
+
+        print("  📋 Downloaded files:")
+        subprocess.run("ls -la ./results/", shell=True)
+
+        print("✅ Results downloaded to ./results/")
+    else:
+        print("❌ Benchmark failed")
+        print("stdout:", result.stdout)
+        print("stderr:", result.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    mdl = sys.argv[1] if len(sys.argv) > 1 else "Llama-3-8B"
-    in_csv = sys.argv[2] if len(sys.argv) > 2 else CSV_IN
-    rows = pd.read_csv(in_csv)
-    run_name = f"{mdl}_{now_tag()}"
-    mon = EnergyMonitor(interval_ms=100, out_dir="data/output/", run_name=run_name)
-    results_csv = mon.results_csv
-    base = ssh_and_launch(mdl)
-    mon.start()
-    t0 = time.time()
-    for i, prompt in enumerate(rows["text"], 1):
-        try:
-            reply = query_one(base, prompt, mdl)
-        except Exception as e:
-            reply = f"__ERROR__: {e}"
-        append_csv(results_csv, i, prompt, reply)
-        if i % 5 == 0: print(f"[{i}/{len(rows)}] ok")
-    t1 = time.time()
-    summary = mon.stop(meta={
-        "model": mdl,
-        "n_prompts": int(len(rows)),
-        "workload_duration_s": round(t1 - t0, 2),
-    })
-    print(json.dumps(summary, indent=2))
-    print("Artifacts:")
-    print(" -", summary["trace_csv"])
-    print(" -", summary["results_csv"])
-    print(" -", os.path.join("runs", run_name, "energy_summary.json"))
+    main()
