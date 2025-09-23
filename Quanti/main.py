@@ -27,25 +27,39 @@ def main():
     print(f"✅ Input parsed: LLM={args.llm}, Workload={args.workload}")
 
 
-    # ------ Upload all to server ------
+    # ------ Upload all to server -----
     print("📡 [1/] Setting up server...")
     upload_all_files()
     print("✅ Server setup complete.")
 
     # ------ Execute benchmark on server ------
     print("⚡ [2/] Executing benchmark on server...")
-    cmd = f"ssh glg1 && cd ~ && source ~/vllm-env/bin/activate && cd Quanti && python3 benchmark.py {args.llm} data/input/{os.path.basename(args.workload)}"
+    workload_basename = os.path.basename(args.workload)
+    cmd = f"""ssh glg1 'cd ~/Quanti && source ~/vllm-env/bin/activate && python3 benchmark.py {args.llm} data/input/{workload_basename}'"""
 
+    print(f"📝 Executing: {cmd}")
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
     if result.returncode == 0:
         print("✅ Benchmark completed successfully")
+        print("📤 Server output:")
+        print(result.stdout)
 
-        # Download results
-        print("📥 3. Downloading results...")
-        subprocess.run("scp -O glg1:~/Quanti/results/* ./results/ 2>/dev/null || true", shell=True)
-        subprocess.run("scp -O glg1:~/Quanti/energy_*.json ./results/ 2>/dev/null || true", shell=True)
-        subprocess.run("scp -O glg1:~/Quanti/benchmark_report_*.json ./results/ 2>/dev/null || true", shell=True)
+        print("📥 [3/] Downloading results...")
+        os.makedirs("./results", exist_ok=True)
+
+        print("  📥 Downloading query results...")
+        subprocess.run("scp -O 'glg1:~/Quanti/results/*' ./results/", shell=True)
+
+        print("  📥 Downloading energy traces...")
+        subprocess.run("scp -O 'glg1:~/Quanti/energy_traces/*' ./results/", shell=True)
+
+        print("  📥 Downloading benchmark reports...")
+        subprocess.run("scp -O 'glg1:~/Quanti/benchmark_report_*.json' ./results/", shell=True)
+
+        print("  📋 Downloaded files:")
+        subprocess.run("ls -la ./results/", shell=True)
+
         print("✅ Results downloaded to ./results/")
     else:
         print("❌ Benchmark failed")

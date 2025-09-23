@@ -10,7 +10,7 @@ import json
 
 from energy import EnergyMonitor
 from utils import append_csv, now_tag
-import vllm
+import vllm_manager
 
 
 def benchmark_setup(llm):
@@ -20,11 +20,9 @@ def benchmark_setup(llm):
     # ----- Install requirements -----
     print("  📦 Installing requirements...")
     result = subprocess.run("pip install -r requirements.txt", shell=True, capture_output=True, text=True)
-
     if result.returncode != 0:
         print(f"❌ Failed to install requirements: {result.stderr}")
         return False
-
     print(f"✅ Requirements installed")
 
     # ------ Clean up any existing vLLM processes ------
@@ -35,14 +33,17 @@ def benchmark_setup(llm):
 
     # ------ Launch vLLM server ------
     print(f"  🚀 Launching vLLM server for model {llm}...")
-    vllm_cmd = f"source ~/vllm-env/bin/activate && {vllm.cmd_serve_model(llm, port=8000)}"
+    vllm_args = vllm_manager.cmd_serve_model(llm, port=8000)
+    full_cmd = f"vllm serve {vllm_args}"
 
-    # ----- Start vLLM in the background -----
     proc = subprocess.Popen(
-        vllm_cmd,
+        full_cmd,
         shell=True,
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1,
+        universal_newlines=True
     )
 
     print("  ⏳ Waiting for vLLM server to start...")
@@ -58,9 +59,9 @@ def benchmark_setup(llm):
             if response.ok:
                 print("  ✅ vLLM server is born! Time to party.")
                 return True
-        except:
+        except requests.exceptions.RequestException:
             pass
-        time.sleep(2)
+        time.sleep(3)
 
     print("❌ vLLM server failed to start in time.")
     return False
@@ -69,7 +70,7 @@ def benchmark_setup(llm):
 def query_llm(prompt: str, llm: str) -> str:
     """Query the local vLLM server."""
     payload = {
-        "model": vllm.models[llm],
+        "model": vllm_manager.models[llm],
         "prompt": prompt,
         "max_tokens": 128,
         "temperature": 0.7
@@ -125,9 +126,9 @@ def benchmark_main(llm: str, workload: str):
     """Main benchmark function - runs entirely on server with energy monitoring to save headaches with local-server sync."""
     print(f"🎯 Starting benchmark: {llm} on {workload}")
 
-    if llm not in vllm.models:
+    if llm not in vllm_manager.models:
         print(f"❌ Unsupported LLM model: {llm}")
-        print(f"Supported models: {list(vllm.models.keys())}")
+        print(f"Supported models: {list(vllm_manager.models.keys())}")
         return False
 
     if not os.path.exists(workload):
@@ -201,7 +202,7 @@ if __name__ == "__main__":
     try:
         if len(sys.argv) != 3:
             print("Usage: python benchmark.py <llm_model> <workload_file>")
-            print(f"Available models: {list(vllm.models.keys())}")
+            print(f"Available models: {list(vllm_manager.models.keys())}")
             sys.exit(1)
 
         llm_model = sys.argv[1]
