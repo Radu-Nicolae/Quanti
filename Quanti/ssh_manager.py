@@ -4,7 +4,7 @@ import time
 
 import requests
 
-from Quanti import vllm
+from Quanti import vllm_manager
 from Quanti.utils import quote
 
 ssh = 'ssh glg1'
@@ -13,12 +13,12 @@ ssh = 'ssh glg1'
 def ssh_and_launch(llm: str, port: int = 8000) -> str:
     subprocess.run(f"{ssh} 'pkill -f \"vllm serve\" || true'", shell=True,
                    check=False)
-    remote = "source ~/vllm-env/bin/activate && " + vllm.cmd_serve_model(llm, gpu_memory_utilization=0.60, port=port)
+    remote = "source ~/vllm-env/bin/activate && " + vllm_manager.cmd_serve_model(llm, gpu_memory_utilization=0.60, port=port)
     proc = subprocess.Popen(
         f"{ssh} {quote(remote)}",
         shell=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True
     )
     atexit.register(proc.terminate)

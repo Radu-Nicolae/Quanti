@@ -1,18 +1,18 @@
 # main.py
 import os, sys, csv, time, subprocess, atexit, requests, pandas as pd, json
 
-import vllm
+import vllm_manager
 from Quanti.benchmark import benchmark_main
 from Quanti.uploader import upload_all_files
 from Quanti.utils import parse_args, append_csv
 from utils import *
 # from energy import EnergyMonitor, now_tag
-from ssh import *
+from ssh_manager import *
 
 
 
 def query_one(base_url: str, prompt: str, model: str) -> str:
-    payload = {"model": vllm.models[model], "prompt": prompt, "max_tokens": 128, "temperature": 0.7}
+    payload = {"model": vllm_manager.models[model], "prompt": prompt, "max_tokens": 128, "temperature": 0.7}
     r = requests.post(f"{base_url}/completions", json=payload, timeout=120)
     r.raise_for_status()
     return r.json()["choices"][0]["text"].strip()
@@ -34,7 +34,7 @@ def main():
 
     # ------ Execute benchmark on server ------
     print("⚡ [2/] Executing benchmark on server...")
-    cmd = f"ssh glg1 'cd ~ && source ~/vllm-env/bin/activate && cd Quanti && python3 benchmark.py {args.llm} data/input/{os.path.basename(args.workload)}'"
+    cmd = f"ssh glg1 && cd ~ && source ~/vllm-env/bin/activate && cd Quanti && python3 benchmark.py {args.llm} data/input/{os.path.basename(args.workload)}"
 
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 

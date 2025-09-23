@@ -1,6 +1,3 @@
-from pathlib import Path
-import os, shlex
-
 # -------- Hugging-Face model aliases ----------------------------------------
 models: dict[str, str] = {
     "Llama-3-8B": "meta-llama/Llama-3.1-8B-Instruct",
@@ -14,18 +11,22 @@ models: dict[str, str] = {
 
 def cmd_serve_model(
         alias: str,
-        gpu_memory_utilization: float = 0.60,
-        max_len: int = 4_096,
+        gpu_memory_utilization: float = 0.85,
+        max_len: int = 2_048,
         port: int = 8_000,
-        timeout: int = 30,
 ) -> str:
+    """Generate vLLM serve command - FIXED version"""
     repo = models[alias]
-    # add also timeout
-    return (
-        f'vllm serve "{repo}" '
-        f"--port {port} "
-        f"--max-model-len {max_len} "
-        f"--max-num-seqs 32 "
-        f"--gpu-memory-utilization {gpu_memory_utilization}"
-        f" --timeout {timeout}"
-    )
+
+    # Generate arguments for API server module
+    args = [
+        f'"{repo}"',
+        f"--port {port}",
+        f"--max-model-len {max_len}",
+        f"--max-num-seqs 32",
+        f"--gpu-memory-utilization {gpu_memory_utilization}",
+        "--host 0.0.0.0",
+        "--trust-remote-code",
+    ]
+
+    return " ".join(args)
