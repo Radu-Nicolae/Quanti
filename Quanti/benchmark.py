@@ -5,12 +5,27 @@ import os
 import uuid
 import requests
 import pandas as pd
-import numpy as np
 import json
 
 from energy import EnergyMonitor
 from utils import append_csv, now_tag
 import vllm_manager
+
+
+def cleanup_processes():
+    print("🧹 Cleaning up vLLM processes...")
+    subprocess.run('pkill -f "vllm serve" || true', shell=True)
+    subprocess.run('pkill -f "nvidia-smi" || true', shell=True)
+    print("✅ Process cleanup complete.")
+
+
+def cleanup_everything():
+    print("🧹 COMPLETE CLEANUP - Removing all traces...")
+    cleanup_processes()
+
+    print("🗑️ Removing ~/Quanti directory...")
+    subprocess.run('rm -rf ~/Quanti || true', shell=True)
+    print("✅ Complete cleanup done.")
 
 
 def benchmark_setup(llm):
@@ -190,14 +205,6 @@ def benchmark_main(llm: str, workload: str):
     return True
 
 
-def cleanup_processes():
-    """Cleanup any lingering vLLM processes."""
-    print("🧹 Cleaning up vLLM processes...")
-    subprocess.run('pkill -f "vllm serve" || true', shell=True)
-    subprocess.run('pkill -f "nvidia-smi" || true', shell=True)
-    print("✅ Cleanup complete.")
-
-
 if __name__ == "__main__":
     try:
         if len(sys.argv) != 3:
@@ -209,15 +216,18 @@ if __name__ == "__main__":
         workload_file = sys.argv[2]
 
         success = benchmark_main(llm_model, workload_file)
+        print("\n🧹 Starting final cleanup...")
+        cleanup_everything()
         sys.exit(0 if success else 1)
 
     except KeyboardInterrupt:
         print("\n⚠️ Benchmark interrupted by user")
-        cleanup_processes()
-        sys.exit(130)
+        cleanup_everything()
+        sys.exit(1)
     except Exception as e:
         print(f"\n❌ Benchmark failed with error: {e}")
-        cleanup_processes()
+        cleanup_everything()
         sys.exit(1)
     finally:
-        cleanup_processes()
+        print("🗑️ Final cleanup guarantee...")
+        cleanup_everything()

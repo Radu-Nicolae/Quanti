@@ -1,5 +1,6 @@
 import argparse
 import csv
+import subprocess
 from datetime import datetime
 import os
 import shlex
@@ -49,3 +50,17 @@ def quote(cmd: str) -> str:
 
 def now_tag():
     return datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+
+def cleanup_server():
+    """Remove all Quanti traces from the server."""
+    print("🧹 Cleaning up server (removing ~/Quanti)...")
+    cleanup_cmd = "ssh glg1 'rm -rf ~/Quanti'"
+    result = subprocess.run(cleanup_cmd, shell=True, capture_output=True, text=True)
+    if result.returncode == 0:
+        print("✅ Server cleanup complete")
+    else:
+        print(f"⚠️ Server cleanup had issues: {result.stderr}")
+        # Try force cleanup
+        force_cmd = "ssh glg1 'rm -rf ~/Quanti || true'"
+        subprocess.run(force_cmd, shell=True)
+        print("🔄 Forced cleanup attempted")
