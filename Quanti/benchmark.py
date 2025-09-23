@@ -8,7 +8,7 @@ import pandas as pd
 import json
 
 from energy import EnergyMonitor
-from utils import append_csv, now_tag
+from utils import append_csv, now_tag, create_run_directory, get_workload_size
 import vllm_manager
 
 
@@ -99,9 +99,9 @@ def query_llm(prompt: str, llm: str) -> str:
         return f"❌ Error querying LLM: {e}"
 
 
-def run_workload(llm: str, workload_file: str, monitor: EnergyMonitor):
+def run_workload(llm: str, workload_file: str, monitor: EnergyMonitor, run_dir: str = None):
     """ Execute the LLM workload and log results."""
-    print("📝 Running workload file {workload_file} with model {llm}...")
+    print(f"📝 Running workload file {workload_file} with model {llm}...")
 
     # Load workload
     try:
@@ -113,8 +113,13 @@ def run_workload(llm: str, workload_file: str, monitor: EnergyMonitor):
         print(f"❌ Failed to read workload file: {e}")
         return False
 
-    results_file = f"results/results_{llm}_{now_tag()}.csv"
-    os.makedirs("results", exist_ok=True)
+    # Choose output location based on run_dir
+    if run_dir:
+        os.makedirs(f"{run_dir}/detailed", exist_ok=True)
+        results_file = f"{run_dir}/detailed/query_responses.csv"
+    else:
+        results_file = f"results/results_{llm}_{now_tag()}.csv"
+        os.makedirs("results", exist_ok=True)
 
     print(f"🏃 Processing {len(df)} prompts...")
 
@@ -133,11 +138,13 @@ def run_workload(llm: str, workload_file: str, monitor: EnergyMonitor):
     return {
         "results_file": results_file,
         "workload_duration_s": round(duration, 2),
-        "n_prompts": len(df)
+        "n_prompts": len(df),
+        "workload_size": get_workload_size(workload_file)
     }
 
 
-def benchmark_main(llm: str, workload: str):
+
+def benchmark_main(llm: str, workload: str, output_dir: str = None):
     """Main benchmark function - runs entirely on server with energy monitoring to save headaches with local-server sync."""
     print(f"🎯 Starting benchmark: {llm} on {workload}")
 
@@ -150,6 +157,11 @@ def benchmark_main(llm: str, workload: str):
         print(f"❌ Workload file does not exist: {workload}")
         return False
 
+    run_dir = None
+    if output_dir:
+        run_dir = create_run_directory(output_dir, llm, workload)
+        print(f"📁 Created run directory: {run_dir}")
+
     # Setup environment
     print("1️⃣ Setting up environment...")
     if not benchmark_setup(llm):
@@ -158,13 +170,16 @@ def benchmark_main(llm: str, workload: str):
 
     # Initialize energy monitoring with unique run name
     run_name = f"{llm}_{now_tag()}_{uuid.uuid4().hex[:6]}"
-    monitor = EnergyMonitor(interval_ms=100, run_name=run_name)
+    if run_dir:
+        monitor = EnergyMonitor(interval_ms=100, run_name=run_name, output_dir=run_dir)
+    else:
+        monitor = EnergyMonitor(interval_ms=100, run_name=run_name)
 
     print("2️⃣ Starting energy monitoring...")
     monitor.start()
 
     print("3️⃣ Running workload...")
-    results = run_workload(llm, workload, monitor)
+    results = run_workload(llm, workload, monitor, run_dir)
 
     if results is None:
         print("❌ Workload execution failed")
@@ -180,7 +195,11 @@ def benchmark_main(llm: str, workload: str):
         }
     )
 
-    report = f"benchmark_report_{run_name}.json"
+    if run_dir:
+        report = f"{run_dir}/summary.json"
+    else:
+        report = f"benchmark_report_{run_name}.json"
+
     with open(report, "w") as f:
         json.dump(energy_summary, f, indent=2)
 
@@ -199,7 +218,6 @@ def benchmark_main(llm: str, workload: str):
     print(f"  📊 Benchmark Report: {report}")
     print(f"  📈 Query Results: {results['results_file']}")
     print(f"  ⚡ Energy Trace: {energy_summary['trace_csv']}")
-    print(f"  📝 Energy Summary: {energy_summary['summary_json']}")
     print("=" * 60)
 
     return True
@@ -207,27 +225,22 @@ def benchmark_main(llm: str, workload: str):
 
 if __name__ == "__main__":
     try:
-        if len(sys.argv) != 3:
-            print("Usage: python benchmark.py <llm_model> <workload_file>")
+        if len(sys.argv) < 3:
+            print("Usage: python benchmark.py <llm_model> <workload_file> [output_dir]")
             print(f"Available models: {list(vllm_manager.models.keys())}")
             sys.exit(1)
 
         llm_model = sys.argv[1]
         workload_file = sys.argv[2]
+        output_dir = sys.argv[3] if len(sys.argv) > 3 else None
 
-        success = benchmark_main(llm_model, workload_file)
-        print("\n🧹 Starting final cleanup...")
-        cleanup_everything()
+        success = benchmark_main(llm_model, workload_file, output_dir)
         sys.exit(0 if success else 1)
 
     except KeyboardInterrupt:
         print("\n⚠️ Benchmark interrupted by user")
-        cleanup_everything()
         sys.exit(1)
     except Exception as e:
         print(f"\n❌ Benchmark failed with error: {e}")
-        cleanup_everything()
         sys.exit(1)
-    finally:
-        print("🗑️ Final cleanup guarantee...")
-        cleanup_everything()
+
