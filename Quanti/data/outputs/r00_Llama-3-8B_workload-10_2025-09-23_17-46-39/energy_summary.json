@@ -1,0 +1,18 @@
+{
+  "run_name": "Llama-3-8B_20250923T174702Z_488527",
+  "duration_s": 22.06,
+  "interval_ms": 100,
+  "samples": 219,
+  "avg_power_W": 288.48,
+  "avg_util_pct": 96.56,
+  "avg_mem_MiB": 21404.18,
+  "energy_Wh": 1.7679,
+  "trace_csv": "data/outputs/r00_Llama-3-8B_workload-10_2025-09-23_17-46-39/detailed/energy_trace.csv",
+  "summary_json": "data/outputs/r00_Llama-3-8B_workload-10_2025-09-23_17-46-39/energy_summary.json",
+  "llm": "Llama-3-8B",
+  "workload": "data/input/llm_workload_10.csv",
+  "results_file": "data/outputs/r00_Llama-3-8B_workload-10_2025-09-23_17-46-39/detailed/query_responses.csv",
+  "workload_duration_s": 22.03,
+  "n_prompts": 10,
+  "workload_size": "10"
+}
